@@ -6,13 +6,13 @@ A TypeScript client for the Stability AI SDK.
 ## Installation
 ```sh
 # NPM
-npm i -g stability-ts
+npm i -g @davmixcool/stability-ts
 
 # To Update
-npm update -g stability-ts
+npm update -g @davmixcool/stability-ts
 
 # Yarn
-yarn global add stability-ts
+yarn global add @davmixcool/stability-ts
 ```
 
 ## Example
@@ -35,7 +35,7 @@ stability \
 
 ## API
 ```ts
-import { generate } from 'stability-ts'
+import { generate } from '@davmixcool/stability-ts'
 
 const api = generate({
   prompt: 'A Stunning House',
@@ -53,7 +53,7 @@ api.on('end', (data) => {
 
 Async/Promise API
 ```ts
-import { generateAsync } from 'stability-ts'
+import { generateAsync } from '@davmixcool/stability-ts'
 
 try {
   const { res, images } = await generateAsync({
