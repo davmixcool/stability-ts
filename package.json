@@ -28,7 +28,11 @@
     "stability": "build/bin.js"
   },
   "keywords": [],
-  "author": "Jacob Kelley <jakie8@gmail.com>",
+  "contributors": [
+    "Jacob Kelley <jakie8@gmail.com>",
+    "Ed Barahona",
+    "David Oti <hello@davidoti.com>"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.18.13",
