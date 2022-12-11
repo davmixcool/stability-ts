@@ -57,7 +57,6 @@ type StabilityOptions = RequiredStabilityOptions &
 type ImageData = {
   buffer: Buffer
   filePath: string
-  imageName: string
   seed: number
   mimeType: string
   classifications: { realizedAction: number }
@@ -180,6 +179,8 @@ export const generate: (
   const schedule = new ScheduleParameters()
   if (typeof stepSchedule.start !== 'undefined')
     schedule.setStart(stepSchedule.start)
+  if (typeof stepSchedule.end !== 'undefined') schedule.setEnd(stepSchedule.end)
+
   const step = new StepParameter()
   step.setScaledStep(0)
   step.setSchedule(schedule)
@@ -245,9 +246,6 @@ export const generate: (
           const { id, mime: mimeType, binary, seed: innerSeed } = image
 
           // @ts-ignore
-          const imageName = `${
-            answer.answerId
-          }-${id}-${innerSeed}.${mime.getExtension(mimeType)}`
           const buffer = Buffer.from(binary, 'base64')
           const filePath = path.resolve(
             path.join(
@@ -265,7 +263,6 @@ export const generate: (
           api.emit('image', {
             buffer,
             filePath,
-            imageName,
             seed: innerSeed,
             mimeType,
             classifications: {
