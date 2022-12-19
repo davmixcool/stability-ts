@@ -37,6 +37,7 @@ cli
   .option('-H, --height <height>', 'height of image', parseCommanderInt, 512)
   .option('-W, --width <width>', 'width of image', parseCommanderInt, 512)
   .option('-c, --cfg_scale <scale>', 'CFG scale factor', parseCommanderInt, 7)
+  .option('-g, --guidance_preset <scale>', 'Guidance preset', parseCommanderInt, 'none')
   .addOption(
     new Option('-a, --sampler <sampler>', 'Diffusion Method')
       .choices(Object.keys(diffusionMap))
