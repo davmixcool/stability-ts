@@ -12,6 +12,7 @@ import {
   ArtifactType,
   PromptParameters,
   ScheduleParameters,
+  GuidanceParameters,
 } from 'stability-sdk/gooseai/generation/generation_pb'
 import { NodeHttpTransport } from '@improbable-eng/grpc-web-node-http-transport'
 import uuid4 from 'uuid4'
@@ -22,7 +23,7 @@ import mkdirp from 'mkdirp'
 import { EventEmitter } from 'events'
 import TypedEmitter from 'typed-emitter'
 
-import { diffusionMap, range } from './utils'
+import { diffusionMap, clipGuidanceMap, range } from './utils'
 
 type DraftStabilityOptions = Partial<{
   outDir: string
@@ -44,6 +45,8 @@ type DraftStabilityOptions = Partial<{
     mask?: { mime: string; content: Buffer }
   } | null
   stepSchedule: { start?: number; end?: number }
+  guidancePreset: keyof typeof clipGuidanceMap
+  negativePrompt: string | null
 }>
 
 type RequiredStabilityOptions = {
@@ -87,9 +90,11 @@ const withDefaults: (
     engine: draft.engine ?? 'stable-diffusion-v1',
     requestId,
     seed: draft.seed ?? range(0, 4294967295),
+    //seed: draft.seed ?? 0,
     width: draft.width ?? 512,
     height: draft.height ?? 512,
     diffusion: draft.diffusion ?? 'k_lms',
+    guidancePreset: draft.guidancePreset ?? 'none',
     steps: draft.steps ?? 50,
     cfgScale: draft.cfgScale ?? 7,
     samples: draft.samples ?? 1,
@@ -98,6 +103,7 @@ const withDefaults: (
     noStore: Boolean(draft.noStore),
     imagePrompt: draft.imagePrompt ?? null,
     stepSchedule: draft.stepSchedule ?? {},
+    negativePrompt: draft.negativePrompt ?? null,
   }
 }
 
@@ -112,6 +118,7 @@ export const generate: (
     width,
     height,
     diffusion,
+    guidancePreset,
     steps,
     cfgScale,
     samples,
@@ -119,6 +126,7 @@ export const generate: (
     outDir,
     prompt: promptText,
     imagePrompt: imagePromptData,
+    negativePrompt: negativePromptText,
     apiKey,
     noStore,
     debug,
@@ -135,30 +143,30 @@ export const generate: (
   request.setEngineId(engine)
   request.setRequestId(requestId)
 
-  const prompt = new Prompt()
-  prompt.setText(promptText)
-  request.addPrompt(prompt)
 
   if (imagePromptData !== null) {
     const artifact = new Artifact()
     artifact.setType(ArtifactType.ARTIFACT_IMAGE)
     artifact.setMime(imagePromptData.mime)
+    //artifact.setText(promptText)
     artifact.setBinary(imagePromptData.content)
-
-    const parameters = new PromptParameters()
-    parameters.setInit(true)
+    
+    const imagePromptParams = new PromptParameters()
+    imagePromptParams.setInit(true)
+    imagePromptParams.setWeight(7);
 
     const imagePrompt = new Prompt()
     imagePrompt.setArtifact(artifact)
-    imagePrompt.setParameters(parameters)
+    imagePrompt.setParameters(imagePromptParams)
     request.addPrompt(imagePrompt)
 
     if (typeof imagePromptData.mask !== 'undefined') {
+
       const maskArtifact = new Artifact()
       maskArtifact.setType(ArtifactType.ARTIFACT_MASK)
       maskArtifact.setMime(imagePromptData.mask.mime)
       maskArtifact.setBinary(imagePromptData.mask.content)
-
+      
       const maskPrompt = new Prompt()
       maskPrompt.setArtifact(maskArtifact)
       request.addPrompt(maskPrompt)
@@ -185,13 +193,35 @@ export const generate: (
   step.setScaledStep(0)
   step.setSchedule(schedule)
 
+
+  const guidance = new GuidanceParameters()
+  guidance.setGuidancePreset(clipGuidanceMap[guidancePreset])
+  step.setGuidance(guidance)
+
   const sampler = new SamplerParameters()
   sampler.setCfgScale(cfgScale)
   step.setSampler(sampler)
-
   image.addParameters(step)
-
   request.setImage(image)
+
+
+  const promptParams = new PromptParameters()
+  promptParams.setWeight(2);
+
+  const prompt = new Prompt()
+  prompt.setText(promptText)
+  prompt.setParameters(promptParams)
+  request.addPrompt(prompt)
+
+  if(negativePromptText !== null){
+
+    const negativePromptParams = new PromptParameters()
+    negativePromptParams.setWeight(-1.3);
+    const negativePrompt = new Prompt()
+    negativePrompt.setText(negativePromptText)
+    negativePrompt.setParameters(negativePromptParams)
+    request.addPrompt(negativePrompt)
+  }
   /** End Build Request **/
 
   if (debug) {
